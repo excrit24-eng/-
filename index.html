@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>冬天的東京</title>
+    <title>冬天的東京 (v19)</title>
     
     <!-- iOS PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,11 +20,43 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
 
+    <style>
+        body { background-color: #f0f0f0; -webkit-tap-highlight-color: transparent; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; } .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        #app { max-width: 480px; margin: 0 auto; background-color: #FAF9F6; min-height: 100vh; display: flex; flex-direction: column; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
+        #map-container { height: 100%; width: 100%; z-index: 1; }
+        .sortable-ghost { opacity: 0.4; background: #F3E5AB; } .sortable-drag { cursor: grabbing; }
+        .modal-enter-active, .modal-leave-active { transition: opacity 0.3s ease; } .modal-enter-from, .modal-leave-to { opacity: 0; }
+        .timeline-connector { position: absolute; left: 27px; top: 40px; bottom: -20px; width: 2px; background-image: linear-gradient(to bottom, #E5E7EB 50%, transparent 50%); background-size: 2px 10px; z-index: 0; }
+        .loader { border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #3498db; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Debug Console Style */
+        #debug-console {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 100px;
+            background: rgba(0,0,0,0.85); color: #00ff00; font-family: monospace;
+            font-size: 10px; padding: 5px; overflow-y: auto; z-index: 9999;
+            pointer-events: none; /* Let clicks pass through */
+            display: none; /* Hidden by default, toggled in code */
+        }
+    </style>
+
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         
+        // Custom Logger for Phone Debugging
+        window.logToScreen = function(msg) {
+            const el = document.getElementById('debug-console');
+            if(el) {
+                el.style.display = 'block';
+                el.innerHTML += `> ${msg}<br>`;
+                el.scrollTop = el.scrollHeight;
+            }
+            console.log(msg);
+        }
+
         const firebaseConfig = {
             apiKey: "AIzaSyBJ-tWqj4pbOZdGpE9zplg_rXkRFEm5u8Y",
             authDomain: "tokyotrip-c4b97.firebaseapp.com",
@@ -36,52 +68,28 @@
         };
 
         try {
+            window.logToScreen("Initializing Firebase...");
             const app = initializeApp(firebaseConfig);
             window.db = getFirestore(app);
             window.isFirebaseEnabled = true;
-            console.log("Firebase initialized successfully");
+            window.logToScreen("Firebase OK!");
         } catch (e) {
-            console.error("Firebase init failed:", e);
+            window.logToScreen("Firebase Error: " + e.message);
             window.isFirebaseEnabled = false;
         }
         
         window.firestoreMethods = { doc, onSnapshot, setDoc, getDoc };
     </script>
-
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'jp-cream': '#FAF9F6', 'jp-yellow': '#F3E5AB', 'jp-yellow-dark': '#E6D285', 
-                        'jp-text': '#4A4A4A', 'jp-gray': '#9CA3AF', 'jp-accent': '#84A59D',
-                        'jp-blue': '#4285F4', 'jp-red': '#EA4335',
-                    },
-                    fontFamily: { sans: ['"Noto Sans TC"', '"Noto Sans JP"', 'sans-serif'] }
-                }
-            }
-        }
-    </script>
-
-    <style>
-        body { background-color: #f0f0f0; -webkit-tap-highlight-color: transparent; padding-top: env(safe-area-inset-top); padding-bottom: env(safe-area-inset-bottom); }
-        .hide-scrollbar::-webkit-scrollbar { display: none; } .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        #app { max-width: 480px; margin: 0 auto; background-color: #FAF9F6; min-height: 100vh; display: flex; flex-direction: column; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.05); }
-        #map-container { height: 100%; width: 100%; z-index: 1; }
-        .sortable-ghost { opacity: 0.4; background: #F3E5AB; } .sortable-drag { cursor: grabbing; }
-        .modal-enter-active, .modal-leave-active { transition: opacity 0.3s ease; } .modal-enter-from, .modal-leave-to { opacity: 0; }
-        .timeline-connector { position: absolute; left: 27px; top: 40px; bottom: -20px; width: 2px; background-image: linear-gradient(to bottom, #E5E7EB 50%, transparent 50%); background-size: 2px 10px; z-index: 0; }
-        .loader { border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #3498db; width: 20px; height: 20px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
 </head>
 <body>
+
+<div id="debug-console"></div>
 
 <div id="app">
     <!-- Header -->
     <header class="bg-jp-cream px-5 pt-12 pb-3 sticky top-0 z-20 border-b border-stone-100 shadow-sm flex justify-between items-center">
         <div @click="editTitle" class="cursor-pointer">
-            <h1 class="text-xl font-bold text-jp-text tracking-widest truncate max-w-[200px]">{{ appTitle }}</h1>
+            <h1 class="text-xl font-bold text-jp-text tracking-widest truncate max-w-[200px]">{{ appTitle }} <span class="text-xs text-blue-500">(v19)</span></h1>
             <p class="text-xs text-jp-gray tracking-wider flex items-center gap-1">
                 {{ getDayRange() }}
                 <span v-if="syncStatus === 'online'" class="text-green-500 ml-1" title="雲端同步中"><i class="fa-solid fa-cloud"></i></span>
@@ -221,132 +229,37 @@
         <button v-for="tab in ['itinerary', 'map', 'expenses', 'info']" :key="tab" @click="switchTab(tab)" class="flex flex-col items-center justify-center w-16 h-full transition-all duration-300 group" :class="currentTab === tab ? 'text-jp-text' : 'text-gray-300'"><div class="mb-1 transition-transform group-active:scale-90" :class="currentTab === tab ? '-translate-y-1' : ''"><i class="fa-solid text-xl" :class="{'itinerary':'fa-suitcase-rolling','map':'fa-map-location-dot','expenses':'fa-calculator','info':'fa-circle-info'}[tab]"></i></div><span class="text-[10px] font-bold" :class="currentTab === tab ? 'opacity-100' : 'opacity-70'">{{ {'itinerary':'行程','map':'地圖','expenses':'記帳','info':'資訊'}[tab] }}</span></button>
     </nav>
 
-    <!-- Modals -->
-
-    <!-- Transport Modal -->
+    <!-- Modals (Transport, Shopping, Itinerary, Expense, Info) -->
     <transition name="modal"><div v-if="showTransportModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl"><h3 class="text-lg font-bold text-jp-text mb-4">交通規劃</h3><div class="bg-gray-50 p-3 rounded-xl text-sm mb-4 flex justify-between items-center"><span>{{ transportForm.origin }}</span><i class="fa-solid fa-arrow-right text-gray-400"></i><span>{{ transportForm.destination }}</span></div><a :href="`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(transportForm.origin)}&destination=${encodeURIComponent(transportForm.destination)}&travelmode=transit`" target="_blank" class="block w-full bg-blue-100 text-blue-600 text-center py-2 rounded-xl text-sm font-bold mb-4 hover:bg-blue-200"><i class="fa-brands fa-google"></i> 在 Google Maps 查詢</a><div class="space-y-3"><div class="flex space-x-2"><div class="flex-1"><label class="text-xs text-gray-400 block mb-1">交通工具</label><select v-model="transportForm.mode" class="w-full bg-gray-50 p-2 rounded-lg outline-none"><option value="train">電車/地鐵</option><option value="walk">步行</option><option value="taxi">計程車</option><option value="bus">巴士</option></select></div><div class="flex-1"><label class="text-xs text-gray-400 block mb-1">所需時間(分)</label><input type="number" v-model="transportForm.time" class="w-full bg-gray-50 p-2 rounded-lg outline-none"></div></div><div><label class="text-xs text-gray-400 block mb-1">車資 (日幣)</label><input type="number" v-model="transportForm.cost" placeholder="0" class="w-full bg-gray-50 p-2 rounded-lg outline-none"></div></div><div class="flex gap-3 mt-6"><button @click="showTransportModal = false" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-500 font-bold">取消</button><button @click="saveTransport" class="flex-1 py-3 bg-jp-yellow text-jp-text font-bold rounded-xl shadow-md">儲存</button></div></div></div></transition>
 
-    <!-- Shopping Modal (With Owner Tabs & Categories) -->
     <transition name="modal">
     <div v-if="showShoppingModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl h-[750px] flex flex-col">
-            <!-- Header -->
-            <div class="flex justify-between items-center mb-2">
-                <h3 class="text-xl font-bold text-jp-text flex items-center"><i class="fa-solid fa-bag-shopping text-jp-yellow-dark mr-2"></i>購物清單</h3>
-                <button @click="showShoppingModal = false" class="text-gray-400 w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
-            </div>
-
-            <!-- Level 1 Filter: Owner Tabs -->
-            <div class="flex border-b border-gray-100 mb-2">
-                <button @click="shoppingTab='all'" class="flex-1 py-2 text-sm font-bold transition-colors" :class="shoppingTab==='all'?'text-jp-text border-b-2 border-jp-yellow-dark':'text-gray-400'">全部</button>
-                <button @click="shoppingTab='yihua'" class="flex-1 py-2 text-sm font-bold transition-colors" :class="shoppingTab==='yihua'?'text-jp-blue border-b-2 border-jp-blue':'text-gray-400'">易樺</button>
-                <button @click="shoppingTab='sister'" class="flex-1 py-2 text-sm font-bold transition-colors" :class="shoppingTab==='sister'?'text-pink-500 border-b-2 border-pink-500':'text-gray-400'">姊姊</button>
-            </div>
-
-            <!-- Level 2 Filter: Item Categories (Horizontal Scroll) -->
-            <div class="flex overflow-x-auto hide-scrollbar space-x-2 pb-2 mb-2 border-b border-gray-50">
-                <button 
-                    @click="selectedShoppingCategory='all'"
-                    class="whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold transition-colors border"
-                    :class="selectedShoppingCategory==='all' ? 'bg-gray-600 text-white border-gray-600' : 'bg-white text-gray-500 border-gray-200'"
-                >
-                    全部
-                </button>
-                <button 
-                    v-for="cat in shoppingCategories" 
-                    :key="cat.id"
-                    @click="selectedShoppingCategory=cat.id"
-                    class="whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold transition-colors border"
-                    :class="selectedShoppingCategory===cat.id ? 'bg-jp-accent text-white border-jp-accent' : 'bg-white text-gray-500 border-gray-200'"
-                >
-                    {{ cat.name }}
-                </button>
-            </div>
-
-            <!-- List -->
+            <div class="flex justify-between items-center mb-2"><h3 class="text-xl font-bold text-jp-text flex items-center"><i class="fa-solid fa-bag-shopping text-jp-yellow-dark mr-2"></i>購物清單</h3><button @click="showShoppingModal = false" class="text-gray-400 w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button></div>
+            <div class="flex border-b border-gray-100 mb-2"><button @click="shoppingTab='all'" class="flex-1 py-2 text-sm font-bold transition-colors" :class="shoppingTab==='all'?'text-jp-text border-b-2 border-jp-yellow-dark':'text-gray-400'">全部</button><button @click="shoppingTab='yihua'" class="flex-1 py-2 text-sm font-bold transition-colors" :class="shoppingTab==='yihua'?'text-jp-blue border-b-2 border-jp-blue':'text-gray-400'">易樺</button><button @click="shoppingTab='sister'" class="flex-1 py-2 text-sm font-bold transition-colors" :class="shoppingTab==='sister'?'text-pink-500 border-b-2 border-pink-500':'text-gray-400'">姊姊</button></div>
+            <div class="flex overflow-x-auto hide-scrollbar space-x-2 pb-2 mb-2 border-b border-gray-50"><button @click="selectedShoppingCategory='all'" class="whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold transition-colors border" :class="selectedShoppingCategory==='all' ? 'bg-gray-600 text-white border-gray-600' : 'bg-white text-gray-500 border-gray-200'">全部</button><button v-for="cat in shoppingCategories" :key="cat.id" @click="selectedShoppingCategory=cat.id" class="whitespace-nowrap px-3 py-1 rounded-full text-xs font-bold transition-colors border" :class="selectedShoppingCategory===cat.id ? 'bg-jp-accent text-white border-jp-accent' : 'bg-white text-gray-500 border-gray-200'">{{ cat.name }}</button></div>
             <div class="flex-1 overflow-y-auto space-y-3 pr-2 hide-scrollbar">
-                <div v-if="filteredShoppingList.length === 0" class="text-center py-10 text-gray-300">
-                    <i class="fa-solid fa-basket-shopping text-4xl mb-2"></i>
-                    <p>這個分類是空的</p>
-                </div>
+                <div v-if="filteredShoppingList.length === 0" class="text-center py-10 text-gray-300"><i class="fa-solid fa-basket-shopping text-4xl mb-2"></i><p>這個分類是空的</p></div>
                 <div v-for="item in filteredShoppingList" :key="item.id" class="bg-white border border-stone-100 rounded-xl p-3 shadow-sm flex gap-3 relative group">
-                    <div class="w-20 h-20 bg-gray-50 rounded-lg flex-shrink-0 overflow-hidden border border-gray-100 flex items-center justify-center text-gray-300">
-                        <img v-if="item.image" :src="item.image" class="w-full h-full object-cover" onerror="this.style.display='none'">
-                        <i v-else class="fa-solid fa-image text-2xl"></i>
-                    </div>
+                    <div class="w-20 h-20 bg-gray-50 rounded-lg flex-shrink-0 overflow-hidden border border-gray-100 flex items-center justify-center text-gray-300"><img v-if="item.image" :src="item.image" class="w-full h-full object-cover" onerror="this.style.display='none'"><i v-else class="fa-solid fa-image text-2xl"></i></div>
                     <div class="flex-1 min-w-0">
-                        <div class="flex justify-between items-start">
-                             <a v-if="item.url" :href="item.url" target="_blank" class="font-bold text-sm text-jp-text truncate hover:text-blue-500 hover:underline block mb-1">{{ item.text }} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></a>
-                             <span v-else class="font-bold text-sm text-jp-text truncate block mb-1">{{ item.text }}</span>
-                        </div>
+                        <div class="flex justify-between items-start"><a v-if="item.url" :href="item.url" target="_blank" class="font-bold text-sm text-jp-text truncate hover:text-blue-500 hover:underline block mb-1">{{ item.text }} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></a><span v-else class="font-bold text-sm text-jp-text truncate block mb-1">{{ item.text }}</span></div>
                         <div class="flex items-center flex-wrap gap-2 mb-1">
-                            <span v-if="item.owner === 'yihua'" class="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-bold">易樺</span>
-                            <span v-else-if="item.owner === 'sister'" class="text-[10px] bg-pink-100 text-pink-500 px-1.5 py-0.5 rounded font-bold">姊姊</span>
-                            
-                            <!-- Category Badge -->
-                            <span v-if="getShoppingCategoryName(item.category)" class="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">
-                                {{ getShoppingCategoryName(item.category) }}
-                            </span>
+                            <span v-if="item.owner === 'yihua'" class="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-bold">易樺</span><span v-else-if="item.owner === 'sister'" class="text-[10px] bg-pink-100 text-pink-500 px-1.5 py-0.5 rounded font-bold">姊姊</span>
+                            <span v-if="getShoppingCategoryName(item.category)" class="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded border border-gray-200">{{ getShoppingCategoryName(item.category) }}</span>
                         </div>
                         <div class="text-sm font-mono text-gray-600">¥{{ Number(item.price).toLocaleString() }}</div>
-                        <div v-if="item.price >= 5500" class="mt-1 flex items-center gap-1">
-                            <span class="text-[10px] bg-red-100 text-red-500 px-1.5 py-0.5 rounded font-bold">Tax Free</span>
-                            <span class="text-[10px] text-gray-400">退稅後 ¥{{ Math.round(item.price / 1.1).toLocaleString() }}</span>
-                        </div>
+                        <div v-if="item.price >= 5500" class="mt-1 flex items-center gap-1"><span class="text-[10px] bg-red-100 text-red-500 px-1.5 py-0.5 rounded font-bold">Tax Free</span><span class="text-[10px] text-gray-400">退稅後 ¥{{ Math.round(item.price / 1.1).toLocaleString() }}</span></div>
                     </div>
                     <button @click="deleteShoppingItem(item.id)" class="absolute top-2 right-2 text-gray-300 hover:text-red-400 p-1"><i class="fa-solid fa-trash-can"></i></button>
                 </div>
             </div>
-
-            <!-- Add Form -->
             <div class="mt-4 pt-4 border-t border-gray-100 space-y-2 bg-gray-50 p-3 rounded-xl">
-                <!-- Owner Selection -->
-                <div class="flex gap-2 mb-2 items-center">
-                    <label class="text-xs font-bold text-gray-400 self-center mr-1">是誰要買？</label>
-                    <label class="flex items-center gap-1 cursor-pointer bg-white px-2 py-1 rounded border border-gray-200">
-                        <input type="radio" v-model="newShoppingItem.owner" value="yihua" class="accent-blue-500">
-                        <span class="text-xs font-bold" :class="newShoppingItem.owner==='yihua'?'text-blue-600':'text-gray-400'">易樺</span>
-                    </label>
-                    <label class="flex items-center gap-1 cursor-pointer ml-1 bg-white px-2 py-1 rounded border border-gray-200">
-                        <input type="radio" v-model="newShoppingItem.owner" value="sister" class="accent-pink-500">
-                        <span class="text-xs font-bold" :class="newShoppingItem.owner==='sister'?'text-pink-500':'text-gray-400'">姊姊</span>
-                    </label>
-                </div>
-
-                <div class="flex gap-2">
-                    <input v-model="newShoppingItem.url" placeholder="貼上商品網址..." class="flex-1 bg-white px-3 py-2 rounded-lg text-sm border-none outline-none ring-1 ring-stone-200 focus:ring-jp-blue">
-                    <button @click="autoFetchInfo" class="bg-gradient-to-r from-blue-400 to-blue-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-sm active:scale-95 whitespace-nowrap flex items-center gap-1" :disabled="isFetching">
-                         <div v-if="isFetching" class="loader border-white border-t-transparent w-3 h-3"></div>
-                         <span v-else>🪄 抓取</span>
-                    </button>
-                </div>
-                
+                <div class="flex gap-2 mb-2 items-center"><label class="text-xs font-bold text-gray-400 self-center mr-1">是誰要買？</label><label class="flex items-center gap-1 cursor-pointer bg-white px-2 py-1 rounded border border-gray-200"><input type="radio" v-model="newShoppingItem.owner" value="yihua" class="accent-blue-500"><span class="text-xs font-bold" :class="newShoppingItem.owner==='yihua'?'text-blue-600':'text-gray-400'">易樺</span></label><label class="flex items-center gap-1 cursor-pointer ml-1 bg-white px-2 py-1 rounded border border-gray-200"><input type="radio" v-model="newShoppingItem.owner" value="sister" class="accent-pink-500"><span class="text-xs font-bold" :class="newShoppingItem.owner==='sister'?'text-pink-500':'text-gray-400'">姊姊</span></label></div>
+                <div class="flex gap-2"><input v-model="newShoppingItem.url" placeholder="貼上商品網址..." class="flex-1 bg-white px-3 py-2 rounded-lg text-sm border-none outline-none ring-1 ring-stone-200 focus:ring-jp-blue"><button @click="autoFetchInfo" class="bg-gradient-to-r from-blue-400 to-blue-500 text-white px-3 py-2 rounded-lg text-xs font-bold shadow-sm active:scale-95 whitespace-nowrap flex items-center gap-1" :disabled="isFetching"><div v-if="isFetching" class="loader border-white border-t-transparent w-3 h-3"></div><span v-else>🪄 抓取</span></button></div>
                 <input v-model="newShoppingItem.text" placeholder="商品名稱 (可自動填入)" class="w-full bg-white px-3 py-2 rounded-lg text-sm border-none outline-none">
-                
-                <!-- Category Selection & New Category -->
-                <div class="flex gap-2 items-center">
-                    <div class="flex-1 relative">
-                        <select v-model="newShoppingItem.category" class="w-full bg-white px-3 py-2 rounded-lg text-sm border-none outline-none appearance-none">
-                            <option value="" disabled>選擇分類</option>
-                            <option v-for="cat in shoppingCategories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
-                        </select>
-                        <i class="fa-solid fa-chevron-down absolute right-3 top-3 text-xs text-gray-300 pointer-events-none"></i>
-                    </div>
-                    
-                    <button v-if="!showNewShoppingCatInput" @click="showNewShoppingCatInput=true" class="bg-gray-100 text-gray-500 px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap hover:bg-gray-200"><i class="fa-solid fa-plus"></i></button>
-                    
-                    <div v-else class="flex gap-1 flex-1">
-                        <input v-model="newShoppingCatName" placeholder="新分類..." class="w-full bg-white px-2 py-2 rounded-lg text-xs border border-jp-accent outline-none">
-                        <button @click="addShoppingCategory" class="bg-jp-accent text-white px-2 rounded-lg text-xs"><i class="fa-solid fa-check"></i></button>
-                        <button @click="showNewShoppingCatInput=false" class="bg-gray-200 text-gray-500 px-2 rounded-lg text-xs"><i class="fa-solid fa-xmark"></i></button>
-                    </div>
-                </div>
-
-                <div class="flex gap-2">
-                    <input v-model="newShoppingItem.price" type="number" placeholder="售價 ¥" class="flex-1 bg-white px-3 py-2 rounded-lg text-sm border-none outline-none">
-                    <input v-model="newShoppingItem.image" placeholder="圖片連結" class="flex-1 bg-white px-3 py-2 rounded-lg text-sm border-none outline-none">
-                </div>
-                
+                <div class="flex gap-2 items-center"><div class="flex-1 relative"><select v-model="newShoppingItem.category" class="w-full bg-white px-3 py-2 rounded-lg text-sm border-none outline-none appearance-none"><option value="" disabled>選擇分類</option><option v-for="cat in shoppingCategories" :key="cat.id" :value="cat.id">{{ cat.name }}</option></select><i class="fa-solid fa-chevron-down absolute right-3 top-3 text-xs text-gray-300 pointer-events-none"></i></div><button v-if="!showNewShoppingCatInput" @click="showNewShoppingCatInput=true" class="bg-gray-100 text-gray-500 px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap hover:bg-gray-200"><i class="fa-solid fa-plus"></i></button><div v-else class="flex gap-1 flex-1"><input v-model="newShoppingCatName" placeholder="新分類..." class="w-full bg-white px-2 py-2 rounded-lg text-xs border border-jp-accent outline-none"><button @click="addShoppingCategory" class="bg-jp-accent text-white px-2 rounded-lg text-xs"><i class="fa-solid fa-check"></i></button><button @click="showNewShoppingCatInput=false" class="bg-gray-200 text-gray-500 px-2 rounded-lg text-xs"><i class="fa-solid fa-xmark"></i></button></div></div>
+                <div class="flex gap-2"><input v-model="newShoppingItem.price" type="number" placeholder="售價 ¥" class="flex-1 bg-white px-3 py-2 rounded-lg text-sm border-none outline-none"><input v-model="newShoppingItem.image" placeholder="圖片連結" class="flex-1 bg-white px-3 py-2 rounded-lg text-sm border-none outline-none"></div>
                 <button @click="addShoppingItem" class="w-full bg-jp-yellow text-jp-text font-bold py-2 rounded-lg text-sm shadow-sm hover:bg-jp-yellow-dark transition-colors">加入清單</button>
             </div>
         </div>
@@ -455,7 +368,7 @@
                 
                 syncStatus.value = 'online';
                 
-                // Listener
+                // Listener - 使用 v15 的 document ID 以保持資料連貫
                 onSnapshot(doc(db, "trips", "tokyo_v15"), (doc) => {
                     if (doc.exists()) {
                         const data = doc.data();
@@ -467,8 +380,12 @@
                         infoItems.value = data.info || [];
                         if (data.customCategories) customCategories.value = data.customCategories;
                         if (data.shoppingCategories) shoppingCategories.value = data.shoppingCategories;
-                        console.log("Remote data synced");
+                        
+                        // Log to debug console
+                        if(window.logToScreen) window.logToScreen("Cloud Sync Received");
                     }
+                }, (error) => {
+                    if(window.logToScreen) window.logToScreen("Sync Error: " + error.message);
                 });
             };
 
@@ -489,9 +406,9 @@
                     const db = window.db;
                     try {
                         await setDoc(doc(db, "trips", "tokyo_v15"), data);
-                        console.log("Saved to Cloud");
+                        if(window.logToScreen) window.logToScreen("Cloud Saved");
                     } catch (e) {
-                        console.error("Cloud save failed", e);
+                        if(window.logToScreen) window.logToScreen("Save Error: " + e.message);
                     }
                 }
             };
