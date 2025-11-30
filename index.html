@@ -73,8 +73,8 @@
                         'jp-accent': '#84A59D',
                         'jp-blue': '#4285F4',
                         'jp-red': '#EA4335',
-                        'jp-pink': '#FFC4CD',      // 修復：補回淡粉色
-                        'jp-pink-dark': '#E8A0AA', // 修復：補回深粉色
+                        'jp-pink': '#FFC4CD',      
+                        'jp-pink-dark': '#E8A0AA', 
                     },
                     fontFamily: {
                         sans: ['"Noto Sans TC"', '"Noto Sans JP"', 'sans-serif'],
@@ -93,7 +93,6 @@
             <h1 class="text-xl font-bold text-jp-text tracking-widest truncate max-w-[200px]">{{ appTitle }}</h1>
             <p class="text-xs text-jp-gray tracking-wider flex items-center gap-1">
                 {{ getDayRange() }}
-                <!-- 簡約連線指示燈 -->
                 <span v-if="syncStatus === 'online'" class="text-green-500 ml-1"><i class="fa-solid fa-cloud"></i></span>
                 <span v-if="syncStatus === 'offline'" class="text-gray-300 ml-1"><i class="fa-solid fa-mobile-screen"></i></span>
                 <span v-if="syncStatus === 'syncing'" class="text-blue-400 ml-1"><i class="fa-solid fa-rotate fa-spin"></i></span>
@@ -106,7 +105,6 @@
         </div>
 
         <div class="flex items-center space-x-2">
-            <!-- Force Sync Button -->
             <button @click="forceSync" class="text-gray-400 hover:text-jp-blue transition-colors">
                 <i class="fa-solid fa-rotate" :class="{'fa-spin': isFetching}"></i>
             </button>
@@ -123,13 +121,10 @@
         <div v-show="currentTab === 'itinerary'" class="space-y-4">
             <div class="sticky top-0 bg-jp-cream z-10 py-2 pl-4 border-b border-stone-50 shadow-sm">
                 <div class="flex space-x-2 overflow-x-auto hide-scrollbar pr-4 pb-2">
-                    <!-- TODO Button: Pink -->
                     <button @click="selectedDate = 'todo'" class="flex-shrink-0 flex flex-col items-center justify-center w-14 h-16 rounded-xl transition-all border" :class="selectedDate === 'todo' ? 'bg-jp-pink border-jp-pink-dark text-jp-text shadow-md transform -translate-y-1' : 'bg-white border-stone-100 text-gray-400'">
                         <i class="fa-solid fa-list-check mb-1 text-lg"></i>
                         <span class="text-[10px] font-bold">TODO</span>
                     </button>
-                    
-                    <!-- Date Buttons: Pink -->
                     <button v-for="(date, index) in tripDates" :key="index" @click="selectedDate = date; fetchWeather(date);" class="flex-shrink-0 flex flex-col items-center justify-center w-14 h-16 rounded-xl transition-all border" :class="selectedDate === date ? 'bg-jp-pink border-jp-pink-dark text-jp-text shadow-md transform -translate-y-1' : 'bg-white border-stone-100 text-gray-400'">
                         <span class="text-[10px] uppercase font-bold opacity-70">{{ date.split('-')[1] }}/{{ date.split('-')[2] }}</span>
                         <span class="text-sm font-bold">{{ getWeekDay(date) }}</span>
@@ -613,8 +608,12 @@
                         const parser = new DOMParser();
                         const doc = parser.parseFromString(htmlContent, "text/html");
                         
-                        // Try to get title
+                        // Check for proxy pages
                         let title = doc.title;
+                        if (title.includes('CorsProxy') || title.includes('Cloudflare') || title.includes('403 Forbidden')) {
+                             throw new Error('Proxy block');
+                        }
+
                         // Clean up Google Maps titles like "Place Name - Google Maps"
                         if (title.includes('- Google')) {
                             title = title.split('- Google')[0].trim();
@@ -635,7 +634,7 @@
                             form.value.note = desc.length > 50 ? desc.substring(0, 50) + '...' : desc;
                         }
 
-                    } catch(e) { console.error(e); alert('解析網頁內容時發生錯誤。'); }
+                    } catch(e) { console.error(e); alert('無法抓取此網頁（網站阻擋了機器人），請手動輸入。'); }
                 } else { alert('無法抓取此網頁，請手動輸入。'); }
                 isFetchingLocation.value = false;
             };
@@ -665,6 +664,11 @@
                         const parser = new DOMParser();
                         const doc = parser.parseFromString(htmlContent, "text/html");
                         
+                         // Check for proxy pages
+                        if (doc.title.includes('CorsProxy') || doc.title.includes('Cloudflare')) {
+                             throw new Error('Proxy block');
+                        }
+
                         // 1. Try JSON-LD (Best for GU/Uniqlo)
                         let priceFound = null;
                         const scriptTags = doc.querySelectorAll('script[type="application/ld+json"]');
@@ -707,7 +711,7 @@
                             if(!isNaN(priceStr)) newShoppingItem.value.price = priceStr;
                         }
 
-                    } catch(e) { console.error(e); alert('解析網頁內容時發生錯誤。'); }
+                    } catch(e) { console.error(e); alert('網站阻擋了抓取，請手動輸入資訊。'); }
                 } else { alert('⚠️ 自動抓取失敗\n建議手動輸入。'); }
                 isFetching.value = false;
             };
