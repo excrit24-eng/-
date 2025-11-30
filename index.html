@@ -233,62 +233,15 @@
         </div>
     </main>
 
-    <!-- Navigation (Restored) -->
+    <!-- Navigation -->
     <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-gray-100 pb-safe pt-1 px-4 flex justify-between items-center h-[88px] z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] max-w-[480px] mx-auto pb-5">
-        <button v-for="tab in ['itinerary', 'map', 'expenses', 'info']" :key="tab" @click="switchTab(tab)" class="flex flex-col items-center justify-center w-16 h-full transition-all duration-300 group" :class="currentTab === tab ? 'text-jp-text' : 'text-gray-300'">
-            <div class="mb-1 transition-transform group-active:scale-90" :class="currentTab === tab ? '-translate-y-1' : ''">
-                <i class="fa-solid text-xl" :class="{'itinerary':'fa-suitcase-rolling','map':'fa-map-location-dot','expenses':'fa-calculator','info':'fa-circle-info'}[tab]"></i>
-            </div>
-            <span class="text-[10px] font-bold" :class="currentTab === tab ? 'opacity-100' : 'opacity-70'">{{ {'itinerary':'行程','map':'地圖','expenses':'記帳','info':'資訊'}[tab] }}</span>
-        </button>
+        <button v-for="tab in ['itinerary', 'map', 'expenses', 'info']" :key="tab" @click="switchTab(tab)" class="flex flex-col items-center justify-center w-16 h-full transition-all duration-300 group" :class="currentTab === tab ? 'text-jp-text' : 'text-gray-300'"><div class="mb-1 transition-transform group-active:scale-90" :class="currentTab === tab ? '-translate-y-1' : ''"><i class="fa-solid text-xl" :class="{'itinerary':'fa-suitcase-rolling','map':'fa-map-location-dot','expenses':'fa-calculator','info':'fa-circle-info'}[tab]"></i></div><span class="text-[10px] font-bold" :class="currentTab === tab ? 'opacity-100' : 'opacity-70'">{{ {'itinerary':'行程','map':'地圖','expenses':'記帳','info':'資訊'}[tab] }}</span></button>
     </nav>
 
     <!-- Modals -->
 
     <!-- Transport Modal -->
-    <transition name="modal">
-    <div v-if="showTransportModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl">
-            <h3 class="text-lg font-bold text-jp-text mb-4">交通規劃</h3>
-            <div class="bg-gray-50 p-3 rounded-xl text-sm mb-4 flex justify-between items-center">
-                <span>{{ transportForm.origin }}</span>
-                <i class="fa-solid fa-arrow-right text-gray-400"></i>
-                <span>{{ transportForm.destination }}</span>
-            </div>
-            
-            <a :href="`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(transportForm.origin)}&destination=${encodeURIComponent(transportForm.destination)}&travelmode=transit`" target="_blank" class="block w-full bg-blue-100 text-blue-600 text-center py-2 rounded-xl text-sm font-bold mb-4 hover:bg-blue-200">
-                <i class="fa-brands fa-google"></i> 在 Google Maps 查詢
-            </a>
-
-            <div class="space-y-3">
-                <div class="flex space-x-2">
-                    <div class="flex-1">
-                        <label class="text-xs text-gray-400 block mb-1">交通工具</label>
-                        <select v-model="transportForm.mode" class="w-full bg-gray-50 p-2 rounded-lg outline-none">
-                            <option value="train">電車/地鐵</option>
-                            <option value="walk">步行</option>
-                            <option value="taxi">計程車</option>
-                            <option value="bus">巴士</option>
-                        </select>
-                    </div>
-                    <div class="flex-1">
-                        <label class="text-xs text-gray-400 block mb-1">所需時間(分)</label>
-                        <input type="number" v-model="transportForm.time" class="w-full bg-gray-50 p-2 rounded-lg outline-none">
-                    </div>
-                </div>
-                <div>
-                    <label class="text-xs text-gray-400 block mb-1">車資 (日幣)</label>
-                    <input type="number" v-model="transportForm.cost" placeholder="0" class="w-full bg-gray-50 p-2 rounded-lg outline-none">
-                </div>
-            </div>
-
-            <div class="flex gap-3 mt-6">
-                <button @click="showTransportModal = false" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-500 font-bold">取消</button>
-                <button @click="saveTransport" class="flex-1 py-3 bg-jp-yellow text-jp-text font-bold rounded-xl shadow-md">儲存</button>
-            </div>
-        </div>
-    </div>
-    </transition>
+    <transition name="modal"><div v-if="showTransportModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl"><h3 class="text-lg font-bold text-jp-text mb-4">交通規劃</h3><div class="bg-gray-50 p-3 rounded-xl text-sm mb-4 flex justify-between items-center"><span>{{ transportForm.origin }}</span><i class="fa-solid fa-arrow-right text-gray-400"></i><span>{{ transportForm.destination }}</span></div><a :href="`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(transportForm.origin)}&destination=${encodeURIComponent(transportForm.destination)}&travelmode=transit`" target="_blank" class="block w-full bg-blue-100 text-blue-600 text-center py-2 rounded-xl text-sm font-bold mb-4 hover:bg-blue-200"><i class="fa-brands fa-google"></i> 在 Google Maps 查詢</a><div class="space-y-3"><div class="flex space-x-2"><div class="flex-1"><label class="text-xs text-gray-400 block mb-1">交通工具</label><select v-model="transportForm.mode" class="w-full bg-gray-50 p-2 rounded-lg outline-none"><option value="train">電車/地鐵</option><option value="walk">步行</option><option value="taxi">計程車</option><option value="bus">巴士</option></select></div><div class="flex-1"><label class="text-xs text-gray-400 block mb-1">所需時間(分)</label><input type="number" v-model="transportForm.time" class="w-full bg-gray-50 p-2 rounded-lg outline-none"></div></div><div><label class="text-xs text-gray-400 block mb-1">車資 (日幣)</label><input type="number" v-model="transportForm.cost" placeholder="0" class="w-full bg-gray-50 p-2 rounded-lg outline-none"></div></div><div class="flex gap-3 mt-6"><button @click="showTransportModal = false" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-500 font-bold">取消</button><button @click="saveTransport" class="flex-1 py-3 bg-jp-yellow text-jp-text font-bold rounded-xl shadow-md">儲存</button></div></div></div></transition>
 
     <!-- Shopping Modal (With Owner Tabs & Categories) -->
     <transition name="modal">
@@ -475,7 +428,7 @@
             const newShoppingCatName = ref('');
 
             // --- Forms ---
-            const exchangeRate = ref(0.215);
+            const exchangeRate = ref(0.20);
             const showModal = ref(false);
             const showAddExpenseModal = ref(false);
             const showShoppingModal = ref(false);
