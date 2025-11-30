@@ -59,6 +59,23 @@
         
         window.firestoreMethods = { doc, onSnapshot, setDoc, getDoc };
     </script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'jp-cream': '#FAF9F6', 'jp-yellow': '#F3E5AB', 'jp-yellow-dark': '#E6D285', 
+                        'jp-text': '#4A4A4A', 'jp-gray': '#9CA3AF', 'jp-accent': '#84A59D',
+                        'jp-blue': '#4285F4', 'jp-red': '#EA4335',
+                        'jp-pink': '#FFC4CD',      // 新增：淡粉色
+                        'jp-pink-dark': '#E8A0AA', // 新增：深粉色(邊框用)
+                    },
+                    fontFamily: { sans: ['"Noto Sans TC"', '"Noto Sans JP"', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
 </head>
 <body>
 
@@ -99,8 +116,17 @@
         <div v-show="currentTab === 'itinerary'" class="space-y-4">
             <div class="sticky top-0 bg-jp-cream z-10 py-2 pl-4 border-b border-stone-50 shadow-sm">
                 <div class="flex space-x-2 overflow-x-auto hide-scrollbar pr-4 pb-2">
-                    <button @click="selectedDate = 'todo'" class="flex-shrink-0 flex flex-col items-center justify-center w-14 h-16 rounded-xl transition-all border" :class="selectedDate === 'todo' ? 'bg-jp-accent text-white border-jp-accent shadow-md transform -translate-y-1' : 'bg-white border-stone-100 text-gray-400'"><i class="fa-solid fa-list-check mb-1 text-lg"></i><span class="text-[10px] font-bold">TODO</span></button>
-                    <button v-for="(date, index) in tripDates" :key="index" @click="selectedDate = date; fetchWeather(date);" class="flex-shrink-0 flex flex-col items-center justify-center w-14 h-16 rounded-xl transition-all border" :class="selectedDate === date ? 'bg-jp-yellow border-jp-yellow-dark text-jp-text shadow-md transform -translate-y-1' : 'bg-white border-stone-100 text-gray-400'"><span class="text-[10px] uppercase font-bold text-gray-500">{{ date.split('-')[1] }}/{{ date.split('-')[2] }}</span><span class="text-sm font-bold">{{ getWeekDay(date) }}</span></button>
+                    <!-- TODO Button: Pink -->
+                    <button @click="selectedDate = 'todo'" class="flex-shrink-0 flex flex-col items-center justify-center w-14 h-16 rounded-xl transition-all border" :class="selectedDate === 'todo' ? 'bg-jp-pink border-jp-pink-dark text-jp-text shadow-md transform -translate-y-1' : 'bg-white border-stone-100 text-gray-400'">
+                        <i class="fa-solid fa-list-check mb-1 text-lg"></i>
+                        <span class="text-[10px] font-bold">TODO</span>
+                    </button>
+                    
+                    <!-- Date Buttons: Pink -->
+                    <button v-for="(date, index) in tripDates" :key="index" @click="selectedDate = date; fetchWeather(date);" class="flex-shrink-0 flex flex-col items-center justify-center w-14 h-16 rounded-xl transition-all border" :class="selectedDate === date ? 'bg-jp-pink border-jp-pink-dark text-jp-text shadow-md transform -translate-y-1' : 'bg-white border-stone-100 text-gray-400'">
+                        <span class="text-[10px] uppercase font-bold opacity-70">{{ date.split('-')[1] }}/{{ date.split('-')[2] }}</span>
+                        <span class="text-sm font-bold">{{ getWeekDay(date) }}</span>
+                    </button>
                 </div>
             </div>
 
@@ -207,15 +233,62 @@
         </div>
     </main>
 
-    <!-- Navigation -->
+    <!-- Navigation (Restored) -->
     <nav class="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur border-t border-gray-100 pb-safe pt-1 px-4 flex justify-between items-center h-[88px] z-40 shadow-[0_-5px_20px_rgba(0,0,0,0.03)] max-w-[480px] mx-auto pb-5">
-        <button v-for="tab in ['itinerary', 'map', 'expenses', 'info']" :key="tab" @click="switchTab(tab)" class="flex flex-col items-center justify-center w-16 h-full transition-all duration-300 group" :class="currentTab === tab ? 'text-jp-text' : 'text-gray-300'"><div class="mb-1 transition-transform group-active:scale-90" :class="currentTab === tab ? '-translate-y-1' : ''"><i class="fa-solid text-xl" :class="{'itinerary':'fa-suitcase-rolling','map':'fa-map-location-dot','expenses':'fa-calculator','info':'fa-circle-info'}[tab]"></i></div><span class="text-[10px] font-bold" :class="currentTab === tab ? 'opacity-100' : 'opacity-70'">{{ {'itinerary':'行程','map':'地圖','expenses':'記帳','info':'資訊'}[tab] }}</span></button>
+        <button v-for="tab in ['itinerary', 'map', 'expenses', 'info']" :key="tab" @click="switchTab(tab)" class="flex flex-col items-center justify-center w-16 h-full transition-all duration-300 group" :class="currentTab === tab ? 'text-jp-text' : 'text-gray-300'">
+            <div class="mb-1 transition-transform group-active:scale-90" :class="currentTab === tab ? '-translate-y-1' : ''">
+                <i class="fa-solid text-xl" :class="{'itinerary':'fa-suitcase-rolling','map':'fa-map-location-dot','expenses':'fa-calculator','info':'fa-circle-info'}[tab]"></i>
+            </div>
+            <span class="text-[10px] font-bold" :class="currentTab === tab ? 'opacity-100' : 'opacity-70'">{{ {'itinerary':'行程','map':'地圖','expenses':'記帳','info':'資訊'}[tab] }}</span>
+        </button>
     </nav>
 
     <!-- Modals -->
 
     <!-- Transport Modal -->
-    <transition name="modal"><div v-if="showTransportModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm"><div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl"><h3 class="text-lg font-bold text-jp-text mb-4">交通規劃</h3><div class="bg-gray-50 p-3 rounded-xl text-sm mb-4 flex justify-between items-center"><span>{{ transportForm.origin }}</span><i class="fa-solid fa-arrow-right text-gray-400"></i><span>{{ transportForm.destination }}</span></div><a :href="`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(transportForm.origin)}&destination=${encodeURIComponent(transportForm.destination)}&travelmode=transit`" target="_blank" class="block w-full bg-blue-100 text-blue-600 text-center py-2 rounded-xl text-sm font-bold mb-4 hover:bg-blue-200"><i class="fa-brands fa-google"></i> 在 Google Maps 查詢</a><div class="space-y-3"><div class="flex space-x-2"><div class="flex-1"><label class="text-xs text-gray-400 block mb-1">交通工具</label><select v-model="transportForm.mode" class="w-full bg-gray-50 p-2 rounded-lg outline-none"><option value="train">電車/地鐵</option><option value="walk">步行</option><option value="taxi">計程車</option><option value="bus">巴士</option></select></div><div class="flex-1"><label class="text-xs text-gray-400 block mb-1">所需時間(分)</label><input type="number" v-model="transportForm.time" class="w-full bg-gray-50 p-2 rounded-lg outline-none"></div></div><div><label class="text-xs text-gray-400 block mb-1">車資 (日幣)</label><input type="number" v-model="transportForm.cost" placeholder="0" class="w-full bg-gray-50 p-2 rounded-lg outline-none"></div></div><div class="flex gap-3 mt-6"><button @click="showTransportModal = false" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-500 font-bold">取消</button><button @click="saveTransport" class="flex-1 py-3 bg-jp-yellow text-jp-text font-bold rounded-xl shadow-md">儲存</button></div></div></div></transition>
+    <transition name="modal">
+    <div v-if="showTransportModal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl">
+            <h3 class="text-lg font-bold text-jp-text mb-4">交通規劃</h3>
+            <div class="bg-gray-50 p-3 rounded-xl text-sm mb-4 flex justify-between items-center">
+                <span>{{ transportForm.origin }}</span>
+                <i class="fa-solid fa-arrow-right text-gray-400"></i>
+                <span>{{ transportForm.destination }}</span>
+            </div>
+            
+            <a :href="`https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(transportForm.origin)}&destination=${encodeURIComponent(transportForm.destination)}&travelmode=transit`" target="_blank" class="block w-full bg-blue-100 text-blue-600 text-center py-2 rounded-xl text-sm font-bold mb-4 hover:bg-blue-200">
+                <i class="fa-brands fa-google"></i> 在 Google Maps 查詢
+            </a>
+
+            <div class="space-y-3">
+                <div class="flex space-x-2">
+                    <div class="flex-1">
+                        <label class="text-xs text-gray-400 block mb-1">交通工具</label>
+                        <select v-model="transportForm.mode" class="w-full bg-gray-50 p-2 rounded-lg outline-none">
+                            <option value="train">電車/地鐵</option>
+                            <option value="walk">步行</option>
+                            <option value="taxi">計程車</option>
+                            <option value="bus">巴士</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="text-xs text-gray-400 block mb-1">所需時間(分)</label>
+                        <input type="number" v-model="transportForm.time" class="w-full bg-gray-50 p-2 rounded-lg outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-gray-400 block mb-1">車資 (日幣)</label>
+                    <input type="number" v-model="transportForm.cost" placeholder="0" class="w-full bg-gray-50 p-2 rounded-lg outline-none">
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-6">
+                <button @click="showTransportModal = false" class="flex-1 py-3 bg-gray-100 rounded-xl text-gray-500 font-bold">取消</button>
+                <button @click="saveTransport" class="flex-1 py-3 bg-jp-yellow text-jp-text font-bold rounded-xl shadow-md">儲存</button>
+            </div>
+        </div>
+    </div>
+    </transition>
 
     <!-- Shopping Modal (With Owner Tabs & Categories) -->
     <transition name="modal">
@@ -387,6 +460,7 @@
             const showNewCatInput = ref(false);
             const newCategoryName = ref('');
             
+            // --- Missing allCategories definition fixed here ---
             const allCategories = computed(() => [...defaultCategories, ...customCategories.value]);
 
             const defaultShoppingCategories = [
@@ -533,7 +607,7 @@
                         { id: 3, date: '2024-12-25', time: '10:00', location: '迪士尼樂園', type: 'spot', note: '聖誕節活動', order: 0, lat: 35.6329, lng: 139.8804 }
                     ];
                     todos.value = [{ id: 1, text: '預訂聖誕晚餐', done: false }];
-                    shoppingList.value = [{ id: 1, text: '福袋', price: 10000, url: '', image: '', owner: 'yihua', category: 'cat_outer' }];
+                    shoppingList.value = []; // Empty by default
                 }
                 initDates();
                 setupFirebaseSync(); // Try to connect cloud
