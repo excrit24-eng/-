@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>冬天的東京 (v20)</title>
+    <title>冬天的東京</title>
     
     <!-- iOS PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -30,14 +30,6 @@
         .timeline-connector { position: absolute; left: 27px; top: 40px; bottom: -20px; width: 2px; background-image: linear-gradient(to bottom, #E5E7EB 50%, transparent 50%); background-size: 2px 10px; z-index: 0; }
         .loader { border: 3px solid #f3f3f3; border-radius: 50%; border-top: 3px solid #3498db; width: 20px; height: 20px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        
-        /* Debug Console */
-        #debug-console {
-            position: fixed; bottom: 0; left: 0; right: 0; height: 120px;
-            background: rgba(0,0,0,0.9); color: #00ff00; font-family: monospace;
-            font-size: 11px; padding: 8px; overflow-y: auto; z-index: 9999;
-            pointer-events: none; display: none;
-        }
     </style>
 
     <!-- Firebase SDK -->
@@ -45,16 +37,6 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getFirestore, doc, onSnapshot, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         
-        window.logToScreen = function(msg) {
-            const el = document.getElementById('debug-console');
-            if(el) {
-                el.style.display = 'block';
-                const time = new Date().toLocaleTimeString();
-                el.innerHTML = `[${time}] ${msg}<br>` + el.innerHTML;
-            }
-            console.log(msg);
-        }
-
         const firebaseConfig = {
             apiKey: "AIzaSyBJ-tWqj4pbOZdGpE9zplg_rXkRFEm5u8Y",
             authDomain: "tokyotrip-c4b97.firebaseapp.com",
@@ -66,13 +48,12 @@
         };
 
         try {
-            window.logToScreen("正在連線 Firebase...");
             const app = initializeApp(firebaseConfig);
             window.db = getFirestore(app);
             window.isFirebaseEnabled = true;
-            window.logToScreen("Firebase SDK 載入成功");
+            console.log("Firebase initialized successfully");
         } catch (e) {
-            window.logToScreen("Firebase SDK 錯誤: " + e.message);
+            console.error("Firebase init failed:", e);
             window.isFirebaseEnabled = false;
         }
         
@@ -81,24 +62,28 @@
 </head>
 <body>
 
-<div id="debug-console"></div>
-
 <div id="app">
     <!-- Header -->
     <header class="bg-jp-cream px-5 pt-12 pb-3 sticky top-0 z-20 border-b border-stone-100 shadow-sm flex justify-between items-center">
         <div @click="editTitle" class="cursor-pointer">
-            <h1 class="text-xl font-bold text-jp-text tracking-widest truncate max-w-[200px]">{{ appTitle }} <span class="text-xs text-blue-500">(v20)</span></h1>
+            <h1 class="text-xl font-bold text-jp-text tracking-widest truncate max-w-[200px]">{{ appTitle }}</h1>
             <p class="text-xs text-jp-gray tracking-wider flex items-center gap-1">
                 {{ getDayRange() }}
-                <span v-if="syncStatus === 'online'" class="text-green-500 ml-1 font-bold">● 連線正常</span>
-                <span v-if="syncStatus === 'offline'" class="text-red-400 ml-1 font-bold">● 離線</span>
-                <span v-if="syncStatus === 'syncing'" class="text-blue-400 ml-1 font-bold">● 同步中...</span>
+                <!-- 簡約連線指示燈 -->
+                <span v-if="syncStatus === 'online'" class="text-green-500 ml-1"><i class="fa-solid fa-cloud"></i></span>
+                <span v-if="syncStatus === 'offline'" class="text-gray-300 ml-1"><i class="fa-solid fa-mobile-screen"></i></span>
+                <span v-if="syncStatus === 'syncing'" class="text-blue-400 ml-1"><i class="fa-solid fa-rotate fa-spin"></i></span>
             </p>
         </div>
         
+        <div v-if="currentWeather" class="flex items-center space-x-2 bg-white px-2 py-1 rounded-lg shadow-sm border border-stone-100">
+            <div class="text-center"><i :class="getWeatherIcon(currentWeather.weathercode)" class="text-jp-blue text-lg"></i></div>
+            <div class="flex flex-col"><span class="text-sm font-bold text-jp-text">{{ currentWeather.temp_max }}° / {{ currentWeather.temp_min }}°</span><span class="text-[9px] text-gray-500">{{ getClothingAdvice(currentWeather.temp_max, currentWeather.temp_min) }}</span></div>
+        </div>
+
         <div class="flex items-center space-x-2">
-            <!-- Force Sync Button -->
-            <button @click="forceSync" class="bg-white p-2 rounded-full text-jp-blue shadow active:scale-90 transition-transform">
+            <!-- Force Sync Button (Optional, kept but styled minimally) -->
+            <button @click="forceSync" class="text-gray-400 hover:text-jp-blue transition-colors">
                 <i class="fa-solid fa-rotate" :class="{'fa-spin': isFetching}"></i>
             </button>
             <button @click="showShoppingModal = true" class="relative p-2 text-jp-text hover:text-jp-accent transition">
@@ -139,6 +124,15 @@
 
             <!-- Itinerary List -->
             <div v-else class="px-5 mt-4 pb-20">
+                <div class="mb-4 space-y-2">
+                    <div class="bg-white p-2 rounded-xl border border-stone-100 shadow-sm flex items-center gap-2">
+                        <i class="fa-brands fa-instagram text-pink-500 text-xl ml-2"></i>
+                        <input v-model="igSearchText" placeholder="輸入 IG 地點名稱 (如: 涉谷SKY)" class="flex-1 bg-transparent outline-none text-sm text-jp-text">
+                        <button @click="searchIgLocation" class="bg-pink-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm active:scale-95">搜尋</button>
+                    </div>
+                    <button v-if="currentDayItinerary.length > 2" @click="optimizeRoute" class="w-full bg-gradient-to-r from-jp-blue to-blue-600 text-white py-2 rounded-xl text-sm font-bold shadow-md active:scale-95 transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-wand-magic-sparkles"></i> AI 路徑最佳化</button>
+                </div>
+
                 <div v-if="currentDayItinerary.length === 0" class="text-center py-12 opacity-50"><div class="bg-white inline-flex p-4 rounded-full mb-3 shadow-sm"><i class="fa-solid fa-route text-3xl text-jp-yellow-dark"></i></div><p class="text-sm font-medium text-gray-400">Day {{ getDayIndex(selectedDate) }} 尚無行程</p></div>
 
                 <div ref="sortableList" class="space-y-0 relative"> 
@@ -298,6 +292,7 @@
             const showNewCatInput = ref(false);
             const newCategoryName = ref('');
             
+            // --- Missing allCategories definition fixed here ---
             const allCategories = computed(() => [...defaultCategories, ...customCategories.value]);
 
             const defaultShoppingCategories = [
@@ -588,6 +583,7 @@
                 getTypeColor, getTypeIcon, getTypeName, getCategoryIcon, getCategoryName, getDailyTotal, getTransportIcon, getWeatherIcon, getClothingAdvice, getGoogleMapsLink, getGoogleMapsRouteLink, getDayRange, getDayIndex, getWeekDay,
                 openAddItemModal, editItem, saveItem, deleteItem, addTodo, deleteTodo, saveExpense, deleteExpense, addInfoItem, deleteInfoItem, addShoppingItem, deleteShoppingItem, openTransportModal, saveTransport, switchTab, locateUser, editTitle, addDay, fetchWeather,
                 igSearchText, searchIgLocation, optimizeRoute, allCategories, customCategories, showNewCatInput, newCategoryName, addCategory, autoFetchInfo, isFetching,
+                // New
                 shoppingTab, filteredShoppingList, shoppingCategories, selectedShoppingCategory, addShoppingCategory, showNewShoppingCatInput, newShoppingCatName, getShoppingCategoryName,
                 syncStatus, forceSync
             };
